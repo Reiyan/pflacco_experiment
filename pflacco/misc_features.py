@@ -35,7 +35,7 @@ def calculate_hill_climbing_features(f, dim, lower_bound, upper_bound, n_runs = 
             'hill_climbing.costs_runtime': timedelta(seconds=time.monotonic() - start_time).total_seconds()
       }
       
-def calculate_gradient_features(f, dim, lower_bound, upper_bound, step_size = None, budget_factor_per_dim = 100, seed = None):
+def calculate_gradient_features(f, dim, lower_bound, upper_bound, step_size = None, budget_per_random_walk = 1000, seed = None):
       start_time = time.monotonic()
       lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
 
@@ -43,45 +43,60 @@ def calculate_gradient_features(f, dim, lower_bound, upper_bound, step_size = No
             np.random.seed(seed)
 
       if step_size is None:
-            step_size = (upper_bound.min() - lower_bound.min())/20
+            step_size = np.array([(upper_bound[i] - lower_bound[i]) * dim /1000 for i in range(dim)])
+      elif not isinstance(step_size, list) and not isinstance(step_size, np.array):
+            step_size = np.array([step_size] * dim)
 
-      dd = np.random.choice([0, 1], size = dim)
-      bounds = list(zip(lower_bound, upper_bound))
-      x = np.array([bounds[x][dd[x]] for x in range(dim)], dtype = 'float64')
-      nfev = 1
-      fval = f(x)
-      signs = np.array([1 if x == 0 else -1 for x in dd])
-      result = [np.append(x, fval)]
-      for i in range(budget_factor_per_dim * dim - 1):
-            cd = np.random.choice(range(dim))
-            if not (x[cd] + signs[cd]*step_size <= bounds[cd][1] and x[cd] + signs[cd]*step_size >= bounds[cd][0]):
-                  signs[cd] = signs[cd] * -1
-            x[cd] = x[cd] + signs[cd]*step_size
-            fval = f(x)
+      nfev = 0
+      g_avgs = []
+      g_devs = []
+      for _ in range(dim):
+            result = []
+            dd = np.random.choice([0, 1], size = dim)
+            bounds = list(zip(lower_bound, upper_bound))
+            x = np.array([bounds[x][dd[x]] for x in range(dim)], dtype = 'float64')
             nfev += 1
+            fval = f(x)
+            signs = np.array([1 if x == 0 else -1 for x in dd])
             result.append(np.append(x, fval))
+            for i in range(budget_per_random_walk - 1):
+                  cd = np.random.choice(range(dim))
+                  if not (x[cd] + signs[cd]*step_size[cd] <= bounds[cd][1] and x[cd] + signs[cd]*step_size[cd] >= bounds[cd][0]):
+                        signs[cd] = signs[cd] * -1
+                  x[cd] = x[cd] + signs[cd]*step_size[cd]
+                  fval = f(x)
+                  nfev += 1
+                  result.append(np.append(x, fval))
       
-      result = np.array(result)
-      fvals = result[: , dim]
-      norm_fval = fvals.max() - fvals.min()
-      sp_range = sum([x[1] - x[0] for x in bounds])
-      denom = step_size/sp_range
+            result = np.array(result)
+            fvals = result[: , dim]
+            norm_fval = fvals.max() - fvals.min()
+            sp_range = sum([x[1] - x[0] for x in bounds])
+            denom = step_size.mean()/sp_range
 
-      g_t = []
-      for i in range(len(result) - 1):
-            numer = (fvals[i + 1] - fvals[i]) / norm_fval
-            g_t.append(numer/denom)
-      g_t = np.array(g_t)
-      g_avg = np.abs(g_t).sum()/len(g_t)
-      g_dev_num = sum([(g_avg - np.abs(g))**2 for g in g_t])
-      g_dev = np.sqrt(g_dev_num/(len(g_t) - 1))
+            g_t = []
+            for i in range(len(result) - 1):
+                  numer = (fvals[i + 1] - fvals[i]) / norm_fval
+                  g_t.append(numer/denom)
+
+            g_t = np.array(g_t)
+            g_avg = np.abs(g_t).sum()/len(g_t)
+            g_avgs.append(g_avg)
+
+            g_dev_num = sum([(g_avg - np.abs(g))**2 for g in g_t])
+            g_dev = np.sqrt(g_dev_num/(len(g_t) - 1))
+            g_devs.append(g_dev)
+      
+      g_avgs = np.array(g_avgs)
+      g_devs = np.array(g_devs)
 
       return {
-            'gradient.g_avg': g_avg,
-            'gradient.g_std': g_dev,
+            'gradient.g_avg': g_avgs.mean(),
+            'gradient.g_std': g_devs.mean(),
             'gradient.additional_function_eval': nfev,
             'gradient.costs_runtime': timedelta(seconds=time.monotonic() - start_time).total_seconds()
       }
+
 
 def calculate_fitness_distance_correlation(X, y, f_opt = None, proportion_of_best = 1, minimize = True, minkowski_p = 2):
       start_time = time.monotonic()
@@ -129,7 +144,7 @@ def calculate_fitness_distance_correlation(X, y, f_opt = None, proportion_of_bes
             'fitness_distance.costs_runtime': timedelta(seconds=time.monotonic() - start_time).total_seconds()
       }
          
-def calculate_length_scales_features(f, dim, lower_bound, upper_bound, budget_factor_per_dim = 100, seed = None, minimize = True, sample_size_from_kde = 500):
+def calculate_length_scales_features(f, dim, lower_bound, upper_bound, budget_factor_per_dim = 1000, seed = None, minimize = True, sample_size_from_kde = 500, use_kernel = False):
       start_time = time.monotonic()
       lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
 
@@ -152,11 +167,15 @@ def calculate_length_scales_features(f, dim, lower_bound, upper_bound, budget_fa
       r_fval = pdist(result[:, dim].reshape(len(result), 1), metric = 'cityblock')
       r = r_fval/r_dist
       r = r[~np.isnan(r)]
-      kernel = gaussian_kde(r)
-      sample = np.random.uniform(low=r.min(), high=r.max(), size = sample_size_from_kde)
-      prob = kernel.pdf(sample)
-      h_r = entropy(prob, base = 2)
-      #moment_sample = kernel.resample(sample_size_from_kde*dim).reshape(sample_size_from_kde*dim)
+
+      if use_kernel:
+            kernel = gaussian_kde(r)
+            sample = np.random.uniform(low=r.min(), high=r.max(), size = sample_size_from_kde)
+            prob = kernel.pdf(sample)
+            h_r = entropy(prob, base = 2)
+      else:
+            h_r = entropy(pd.Series(np.round(r, 6)).value_counts())
+      
       moments = moment(r, moment = [2, 3, 4])
       return {
             'length_scale.shanon_entropy': h_r,

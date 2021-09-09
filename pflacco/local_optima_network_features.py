@@ -2,6 +2,9 @@ import pandas as pd
 import scipy.optimize as opt
 import numpy as np
 import random
+import time
+
+from datetime import timedelta
 
 from .pflacco_utils import _transform_bounds_to_canonical
 
@@ -87,7 +90,7 @@ def create_graph(nodes, edges):
     #nx.drawing.nx_pydot.write_dot(graph, f'lon_results/dot_results/graph_{problem}_{fun_id}_{inst}_{dim}.dot')
 '''
 
-def compute_local_optima_network(f, dim, lower_bound, upper_bound, random_seed = None, logs=False, stepsize = 2, basin_hopping_iteration = 100, stopping_threshold = 1000, minimizer_kwargs = None):
+def compute_local_optima_network(f, dim, lower_bound, upper_bound, random_seed = None, stepsize = 2, basin_hopping_iteration = 100, stopping_threshold = 1000, minimizer_kwargs = None):
     global nodes, edges, last, restart
     restart = True
     nodes = []
@@ -109,20 +112,22 @@ def compute_local_optima_network(f, dim, lower_bound, upper_bound, random_seed =
     lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
     minimizer_kwargs['bounds'] = list(zip(lower_bound, upper_bound))
     
+    nfev = 0
     for _ in range(basin_hopping_iteration):
         x0 = np.random.uniform(lower_bound, upper_bound, dim)
-        opt.basinhopping(f, x0, T=0.0, minimizer_kwargs=minimizer_kwargs, stepsize = stepsize, callback=_minfound, niter=stopping_threshold)
+        bh_res = opt.basinhopping(f, x0, T=0.0, minimizer_kwargs=minimizer_kwargs, stepsize = stepsize, callback=_minfound, niter=stopping_threshold)
         restart = True
+        nfev += bh_res['nfev']
 
     nodes = pd.DataFrame(np.array([np.array([x, nodes[x][0], 1]) for x in range(len(nodes))]), columns = ['id', 'fval', 'neutrality'])
     edges = pd.DataFrame(edges, columns = ['source', 'target'])
     nodes, edges = _consolide_nodes_same_fitness(nodes, edges)
     edges = _consolidate_edges(edges)
 
-    return nodes, edges
+    return nodes, edges, nfev
 
 
-def compute_lon_features(nodes, edges, f_opt = None):
+def _compute_lon_features(nodes, edges, f_opt = None):
     n_optima = len(nodes)
     neutral = nodes.loc[nodes['neutrality'] > 1, 'neutrality'].sum()/nodes['neutrality'].sum()
     n_funnels = len([x for x in nodes['id'] if x not in edges['source'].unique().tolist()])
@@ -148,3 +153,15 @@ def compute_lon_features(nodes, edges, f_opt = None):
         result['lon.global_funnel_strength_norm'] = len(np.unique(tmp))/n_optima
 
     return result
+
+
+def compute_lon_features(f, dim, l_bound, u_bound, f_opt = None, stepsize = 2, basin_hopping_iteration = 100, stopping_threshold = 1000, minimizer_kwargs = None, random_seed = None):
+    start_time = time.monotonic()
+
+    nodes, edges, nfev = compute_local_optima_network(f, dim, l_bound, u_bound, random_seed = random_seed, stepsize = stepsize, basin_hopping_iteration = basin_hopping_iteration, stopping_threshold = stopping_threshold, minimizer_kwargs = minimizer_kwargs)
+    lon = _compute_lon_features(nodes, edges, f_opt = f_opt)
+
+    lon['lon.additional_function_eval'] = nfev
+    lon['lon.costs_runtime'] = timedelta(seconds=time.monotonic() - start_time).total_seconds()
+
+    return lon
