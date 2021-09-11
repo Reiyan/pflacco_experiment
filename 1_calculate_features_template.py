@@ -14,7 +14,6 @@ REPITIONS = 10
 BLOCKS = 3
 SAMPLE_SIZE_FACTOR = 50
 EXP_FOLDER = '/scratch/tmp/r_prag01/pflacco_experiment/'
-EXP_FOLDER = './pflacco_experiment'
 
 def calculate_features(problem_ids):
     suite = cocoex.Suite("bbob", f"instances:{problem_ids[2]}", f"function_indices:{problem_ids[0]} dimensions:{problem_ids[1]}")
@@ -73,14 +72,11 @@ def calculate_features(problem_ids):
             results.append(res)
 
         df = pd.DataFrame(results)
-        df.to_csv(os.path.join(EXP_FOLDER, f'F{fid}_D{dim}_I{iid}_SSize{SAMPLE_SIZE_FACTOR}_fast_features.csv'), index = False)
+        df.to_csv(os.path.join(EXP_FOLDER, f'F{fid}_D{dim}_I{iid}_SSize{SAMPLE_SIZE_FACTOR}_features.csv'), index = False)
 
-'''
+
 if __name__ == '__main__':
     if len(sys.argv) == 4:
         calculate_features([int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])])
     else:
         raise SyntaxError("Insufficient number of arguments passed")
-'''
-
-calculate_features([5, 5, 1])
