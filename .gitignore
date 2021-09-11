@@ -2,3 +2,4 @@
 venv/
 coco-master/
 __pycache__
+*.zip

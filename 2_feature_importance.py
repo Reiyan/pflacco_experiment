@@ -3,7 +3,6 @@ import numpy as np
 import os
 from sklearn.ensemble import GradientBoostingClassifier
 from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-from functools import partial
 from sklearn.metrics import f1_score
 
 
@@ -32,6 +31,9 @@ y_all = ela[ela.columns.difference(colnames)]
 X['ela_local.best2mean_contr.ratio'].replace(np.inf, 1, inplace=True)
 X['ela_local.best2mean_contr.ratio'].replace(np.NINF, 0, inplace=True)
 X['ela_meta.quad_simple.cond'].replace([np.inf, -np.inf], np.nan, inplace=True)
+
+
+
 #X.replace([np.inf, -np.inf], np.nan)
 X = X.fillna(0)
 
@@ -46,7 +48,7 @@ for hl_prop in high_level_properties:
     y = y_all[hl_prop]
     gbc = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0)
 
-    sffs = SFS(gbc, k_features=(1,5), forward=True, floating=True, scoring=_f1, cv=0, n_jobs=1)
+    sffs = SFS(gbc, k_features=(1,30), forward=True, floating=True, scoring=_f1, cv=0, n_jobs=1)
     sffs = sffs.fit(X, y)
 
     print('\nSFFS [' + str(hl_prop) + ']:')
