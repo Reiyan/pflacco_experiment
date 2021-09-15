@@ -155,7 +155,7 @@ def _compute_lon_features(nodes, edges, f_opt = None):
     return result
 
 
-def compute_lon_features(f, dim, l_bound, u_bound, f_opt = None, stepsize = 2, basin_hopping_iteration = 100, stopping_threshold = 1000, minimizer_kwargs = None, random_seed = None):
+def compute_lon(f, dim, l_bound, u_bound, f_opt = None, stepsize = 2, basin_hopping_iteration = 100, stopping_threshold = 1000, minimizer_kwargs = None, random_seed = None):
     start_time = time.monotonic()
 
     nodes, edges, nfev = compute_local_optima_network(f, dim, l_bound, u_bound, random_seed = random_seed, stepsize = stepsize, basin_hopping_iteration = basin_hopping_iteration, stopping_threshold = stopping_threshold, minimizer_kwargs = minimizer_kwargs)

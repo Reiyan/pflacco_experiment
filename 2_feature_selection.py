@@ -7,13 +7,13 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import f1_score
 
-INPUT_FOLDER = '/scratch/tmp/r_prag01/pflacco_experiment' 
-OUTPUT_FOLDER = '/scratch/tmp/r_prag01/pflacco_sffs'
-PROJ_FOLDER = '/home/r/r_prag01/pflacco_experiment'
+PROJ_FOLDER = './'
+INPUT_FOLDER = './pflacco_experiment'
+OUTPUT_FOLDER = './pflacco_sffs'
 
 MODELS = ['svm', 'rf', 'gbm']
 HIGH_LEVEL_PROPS = ['multimodality', 'global_structure', 'funnel_structure']
-SSIZE = 500
+SSIZE = 50
 
 high_level_properties_classif = pd.read_csv(os.path.join(PROJ_FOLDER, 'BBOB_high_level_properties.csv'))
 #high_level_properties = high_level_properties_classif.columns[1:]
@@ -38,7 +38,9 @@ ela = pd.merge(ela, high_level_properties_classif, how = 'left', on = ['fid'])
 # Create X data set
 X = ela[ela_colnames]
 
-# Drop columns which contain NA or infinity values. These are: 'ela_meta.quad_simple.cond', 'ela_local.best2mean_contr.ratio', 'lon.global_funnel_strength_norm'
+# Drop columns which contain NA or infinity values. 
+# These are for SSIZE 500: 'ela_meta.quad_simple.cond', 'ela_local.best2mean_contr.ratio', 'lon.global_funnel_strength_norm' 
+# SSIZE 50: 'ela_local.best2mean_contr.ratio', 'lon.global_funnel_strength_norm'
 X.replace([np.inf, -np.inf], np.nan, inplace=True)
 X = X.drop(columns=X.columns[X.isna().any().values])
 
@@ -81,4 +83,4 @@ for model_ in MODELS:
         sffs_result = pd.DataFrame.from_dict(sffs.get_metric_dict()).T
         sffs_result['hlevel'] = hl_prop
         sffs_result['model'] = model_
-        sffs_result.to_csv(os.path.join(OUTPUT_FOLDER, f'sffs_{model_}_{hl_prop}_results.csv'), index = False)
+        sffs_result.to_csv(os.path.join(OUTPUT_FOLDER, f'sffs_{model_}_{hl_prop}_SSize_{SSIZE}_results.csv'), index = False)

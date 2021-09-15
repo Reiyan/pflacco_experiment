@@ -11,7 +11,7 @@ from SALib.analyze import sobol
 from .pflacco_utils import _transform_bounds_to_canonical, _validate_variable_types, _determine_max_n_blocks, _check_blocks_variable, _create_blocks
 from .sampling import _create_local_search_sample, create_initial_sample, _levy_random_walk
 
-def calculate_hill_climbing_features(f, dim, lower_bound, upper_bound, n_runs = 100, budget_factor_per_run = 1000, method = 'L-BFGS-B', minimize = True, seed = None, minkowski_p = 2):
+def calculate_hill_climbing(f, dim, lower_bound, upper_bound, n_runs = 100, budget_factor_per_run = 1000, method = 'L-BFGS-B', minimize = True, seed = None, minkowski_p = 2):
       start_time = time.monotonic()
       lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
 
@@ -35,7 +35,7 @@ def calculate_hill_climbing_features(f, dim, lower_bound, upper_bound, n_runs = 
             'hill_climbing.costs_runtime': timedelta(seconds=time.monotonic() - start_time).total_seconds()
       }
       
-def calculate_gradient_features(f, dim, lower_bound, upper_bound, step_size = None, budget_per_random_walk = 1000, seed = None):
+def calculate_gradient(f, dim, lower_bound, upper_bound, step_size = None, budget_per_random_walk = 1000, seed = None):
       start_time = time.monotonic()
       lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
 
@@ -144,7 +144,7 @@ def calculate_fitness_distance_correlation(X, y, f_opt = None, proportion_of_bes
             'fitness_distance.costs_runtime': timedelta(seconds=time.monotonic() - start_time).total_seconds()
       }
          
-def calculate_length_scales_features(f, dim, lower_bound, upper_bound, budget_factor_per_dim = 1000, seed = None, minimize = True, sample_size_from_kde = 500, use_kernel = False):
+def calculate_length_scales(f, dim, lower_bound, upper_bound, budget_factor_per_dim = 1000, seed = None, minimize = True, sample_size_from_kde = 500, use_kernel = False):
       start_time = time.monotonic()
       lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
 
@@ -188,7 +188,7 @@ def calculate_length_scales_features(f, dim, lower_bound, upper_bound, budget_fa
             'length_scale.costs_runtime': timedelta(seconds=time.monotonic() - start_time).total_seconds()
       }
 
-def calculate_sobol_indices_features(f, dim, lower_bound, upper_bound, sampling_coefficient = 10000, n_bins = 20, min_obs_per_bin_factor = 1.5, seed = None):
+def calculate_sobol_indices(f, dim, lower_bound, upper_bound, sampling_coefficient = 10000, n_bins = 20, min_obs_per_bin_factor = 1.5, seed = None):
       start_time = time.monotonic()
       lower_bound, upper_bound = _transform_bounds_to_canonical(dim, lower_bound, upper_bound)
       if seed is not None:

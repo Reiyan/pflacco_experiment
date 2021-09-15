@@ -13,7 +13,7 @@ U_BOUND = 5
 REPITIONS = 10
 BLOCKS = 3
 SAMPLE_SIZE_FACTOR = 50
-EXP_FOLDER = '/scratch/tmp/r_prag01/pflacco_experiment/'
+EXP_FOLDER = './pflacco_experiment/'
 
 def calculate_features(problem_ids):
     suite = cocoex.Suite("bbob", f"instances:{problem_ids[2]}", f"function_indices:{problem_ids[0]} dimensions:{problem_ids[1]}")
@@ -51,17 +51,17 @@ def calculate_features(problem_ids):
             fdc = calculate_fitness_distance_correlation(X, y)
 
             if SAMPLE_SIZE_FACTOR == 500:
-                lon = compute_lon_features(f, dim, L_BOUND, U_BOUND, basin_hopping_iteration = 100, stopping_threshold = 1000)
-                hc = calculate_hill_climbing_features(f, dim, L_BOUND, U_BOUND, n_runs = 200, budget_factor_per_run = 80)
-                grad = calculate_gradient_features(f, dim, L_BOUND, U_BOUND, budget_per_random_walk = 1000)
-                si = calculate_sobol_indices_features(f, dim, L_BOUND, U_BOUND)
-                ls = calculate_length_scales_features(f, dim, L_BOUND, U_BOUND, budget_factor_per_dim=100)
+                lon = compute_lon(f, dim, L_BOUND, U_BOUND, basin_hopping_iteration = 100, stopping_threshold = 1000)
+                hc = calculate_hill_climbing(f, dim, L_BOUND, U_BOUND, n_runs = 200, budget_factor_per_run = 80)
+                grad = calculate_gradient(f, dim, L_BOUND, U_BOUND, budget_per_random_walk = 1000)
+                si = calculate_sobol_indices(f, dim, L_BOUND, U_BOUND)
+                ls = calculate_length_scales(f, dim, L_BOUND, U_BOUND, budget_factor_per_dim=100)
             else:
-                lon = compute_lon_features(f, dim, L_BOUND, U_BOUND, basin_hopping_iteration = 50, stopping_threshold = 1000)
-                hc = calculate_hill_climbing_features(f, dim, L_BOUND, U_BOUND, n_runs = 50, budget_factor_per_run = 50)
-                grad = calculate_gradient_features(f, dim, L_BOUND, U_BOUND, budget_per_random_walk = 50)
-                si = calculate_sobol_indices_features(f, dim, L_BOUND, U_BOUND, sampling_coefficient = 50)
-                ls = calculate_length_scales_features(f, dim, L_BOUND, U_BOUND, budget_factor_per_dim = 50)
+                lon = compute_lon(f, dim, L_BOUND, U_BOUND, basin_hopping_iteration = 50, stopping_threshold = 1000)
+                hc = calculate_hill_climbing(f, dim, L_BOUND, U_BOUND, n_runs = 50, budget_factor_per_run = 50)
+                grad = calculate_gradient(f, dim, L_BOUND, U_BOUND, budget_per_random_walk = 50)
+                si = calculate_sobol_indices(f, dim, L_BOUND, U_BOUND, sampling_coefficient = 50)
+                ls = calculate_length_scales(f, dim, L_BOUND, U_BOUND, budget_factor_per_dim = 50)
 
             res = {**hc, **grad, **fdc, **meta, **pca, **nbc, **disp, **ic, **distr, **cm_angle, **cm_conv, **cm_grad, **ela_conv, **ela_level, **ela_curvate, **ela_local, **ls, **si, **lon}
             res['fid'] = fid
